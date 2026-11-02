@@ -9,6 +9,7 @@ mod omnilingual;
 mod openvino;
 mod paraformer;
 mod parakeet;
+mod paxa;
 mod sensevoice;
 mod soniox;
 
@@ -19,6 +20,7 @@ pub use omnilingual::OmnilingualConfig;
 pub use openvino::OpenVinoConfig;
 pub use paraformer::ParaformerConfig;
 pub use parakeet::{ParakeetConfig, ParakeetModelType};
+pub use paxa::PaxaConfig;
 pub use sensevoice::SenseVoiceConfig;
 pub use soniox::SonioxConfig;
 
@@ -70,6 +72,8 @@ pub enum TranscriptionEngine {
     OpenVino,
     /// Use Soniox (cloud streaming WebSocket STT).
     Soniox,
+    /// Use Paxa Labs (cloud streaming WebSocket STT for Thai/English/Mandarin).
+    Paxa,
 }
 
 impl TranscriptionEngine {

@@ -58,15 +58,17 @@ pub enum Remediation {
 /// for engines that have no compile-time gate.
 ///
 /// Whisper is unconditional in every variant (the engine itself is the
-/// reason whisper-rs is a non-optional dependency), and so is the Soniox
-/// cloud client, which has no Cargo feature. Every other engine is behind a
+/// reason whisper-rs is a non-optional dependency), and so is the Soniox and
+/// Paxa cloud clients, which have no Cargo feature. Every other engine is behind a
 /// feature flag of the same name, so the feature name is just the engine's
 /// canonical name.
 pub fn required_feature(engine: TranscriptionEngine) -> Option<&'static str> {
     match engine {
         // Whisper and the Soniox cloud client are compiled into every
         // variant; Soniox has no Cargo feature (see Cargo.toml).
-        TranscriptionEngine::Whisper | TranscriptionEngine::Soniox => None,
+        TranscriptionEngine::Whisper | TranscriptionEngine::Soniox | TranscriptionEngine::Paxa => {
+            None
+        }
         other => Some(other.name()),
     }
 }
@@ -261,5 +263,6 @@ mod tests {
         }
         assert_eq!(required_feature(TranscriptionEngine::Whisper), None);
         assert_eq!(required_feature(TranscriptionEngine::Soniox), None);
+        assert_eq!(required_feature(TranscriptionEngine::Paxa), None);
     }
 }

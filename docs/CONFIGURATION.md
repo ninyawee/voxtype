@@ -1817,6 +1817,91 @@ The Soniox backend pulls in a small WebSocket client (tokio-tungstenite + rustls
 
 ---
 
+## [paxa]
+
+Configuration for the Paxa Labs cloud STT engine (Thai, English, Mandarin). This section is only used when `engine = "paxa"`; it may be omitted entirely if the API key comes from `PAXA_API_KEY`. See [PAXA.md](PAXA.md) for setup and behavior.
+
+**Privacy:** Audio is sent to a third-party service. Use the local engines (Whisper, Parakeet, etc.) if you cannot send dictation off-device.
+
+### api_key
+
+**Type:** String (optional)
+**Default:** unset (falls back to `PAXA_API_KEY` env var)
+**Required:** Yes (via this field, the env var, or `--paxa-api-key`)
+
+Paxa API key (`pxa_...`). Prefer the env var so the key stays out of config files.
+
+### endpoint
+
+**Type:** String
+**Default:** `"api.paxalabs.com"`
+
+API host. A bare host or a full URL both work. `https://` (or a bare host) uses `wss://` for streaming; `http://` uses plain `ws://`, for a local proxy.
+
+### model
+
+**Type:** String
+**Default:** `"paxa-stt-lite-realtime-v1-preview"`
+
+Realtime model used when `streaming = true`.
+
+### batch_model
+
+**Type:** String
+**Default:** `"paxa-stt-lite-v1-preview"`
+
+Recording model used when `streaming = false` and for `voxtype transcribe <file>`. Sent to `POST /v1/audio/transcriptions`.
+
+### language
+
+**Type:** String (optional)
+**Default:** unset (auto-detect)
+
+BCP 47 language hint such as `"th"` or `"en"`. Paxa treats it as a hint, not a filter, so code-switched speech still comes through.
+
+### streaming
+
+**Type:** Boolean
+**Default:** `true`
+
+- `true`: realtime WebSocket session. Each turn (speech between pauses) is typed when Paxa finalizes it. **Push-to-talk is auto-promoted to toggle**, as with every streaming engine; set [`[output] streaming_type_on_release`](#streaming_type_on_release) to keep push-to-talk.
+- `false`: one request with the whole recording on release. Works with push-to-talk.
+
+### type_partials
+
+**Type:** Boolean
+**Default:** `true`
+
+Type stable extensions of interim transcripts as they arrive. The current realtime model sends finals only, so this has no visible effect today.
+
+### style
+
+**Type:** String (optional)
+**Default:** unset (`verbatim`)
+
+`"clean"` drops fillers and merges broken phrases. Streaming only.
+
+### convention
+
+**Type:** String (optional)
+**Default:** unset (`spoken`)
+
+`"written"` keeps digits, units and the repetition mark ๆ in Thai output instead of spelled-out words. Streaming only.
+
+### vocabulary
+
+**Type:** Array of strings (optional)
+**Default:** unset
+
+Terms to bias recognition toward (up to 50, 50 characters each). They are never inserted on their own. Streaming only.
+
+```toml
+[paxa]
+language = "th"
+convention = "written"
+vocabulary = ["voxtype", "Hyprland"]
+```
+
 ## [openvino]
 
 Configuration for the OpenVINO Whisper speech-to-text engine. This section is only used when `engine = "openvino"`. The x86_64 ONNX release binaries include the feature, and source builds can enable it with `--features openvino-whisper`. OpenVINO is loaded at runtime only when this engine is selected, so a missing runtime does not affect other engines.

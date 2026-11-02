@@ -1,8 +1,8 @@
 use super::{
     AudioConfig, CohereConfig, DolphinConfig, HotkeyConfig, MeetingConfig, MoonshineConfig,
-    OmnilingualConfig, OpenVinoConfig, OutputConfig, ParaformerConfig, ParakeetConfig, Profile,
-    SenseVoiceConfig, SonioxConfig, StatusConfig, StreamingConfig, TextConfig, TranscriptionEngine,
-    VadConfig, WhisperConfig,
+    OmnilingualConfig, OpenVinoConfig, OutputConfig, ParaformerConfig, ParakeetConfig, PaxaConfig,
+    Profile, SenseVoiceConfig, SonioxConfig, StatusConfig, StreamingConfig, TextConfig,
+    TranscriptionEngine, VadConfig, WhisperConfig,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -69,6 +69,11 @@ pub struct Config {
     #[serde(default)]
     pub soniox: Option<SonioxConfig>,
 
+    /// Paxa Labs cloud STT configuration
+    /// (optional, only used when engine = "paxa")
+    #[serde(default)]
+    pub paxa: Option<PaxaConfig>,
+
     /// Shared sliding-window streaming engine tuning, used by every batch
     /// backend wrapped in `transcribe::sliding_window` (currently `whisper`
     /// and `openvino`). `None` when config.toml has no `[streaming]`
@@ -130,6 +135,7 @@ impl Default for Config {
             cohere: None,
             openvino: None,
             soniox: None,
+            paxa: None,
             streaming: None,
             text: TextConfig::default(),
             vad: VadConfig::default(),
@@ -170,6 +176,9 @@ impl Config {
                 .as_ref()
                 .map(|s| s.streaming && !s.async_api)
                 .unwrap_or(false),
+            // Paxa streams by default, and a missing [paxa] section still runs
+            // (the key can come from PAXA_API_KEY), so default to streaming.
+            TranscriptionEngine::Paxa => self.paxa.as_ref().map(|p| p.streaming).unwrap_or(true),
             // Same reasoning as Parakeet/Soniox: an absent [openvino] section
             // means the transcriber can't initialize anyway, so don't
             // auto-promote push-to-talk to toggle for a config that can't
@@ -390,7 +399,7 @@ impl Config {
                 .map(|o| o.on_demand_loading)
                 .unwrap_or(false),
             // Soniox is a cloud backend; nothing to load on demand.
-            TranscriptionEngine::Soniox => false,
+            TranscriptionEngine::Soniox | TranscriptionEngine::Paxa => false,
         }
     }
 
@@ -415,6 +424,7 @@ impl Config {
             TranscriptionEngine::SenseVoice => {
                 self.sensevoice.as_ref().map(|s| s.language.as_str())?
             }
+            TranscriptionEngine::Paxa => self.paxa.as_ref().and_then(|p| p.language.as_deref())?,
             // Parakeet, Moonshine, Paraformer, Dolphin, Omnilingual and Soniox
             // either detect the language or are fixed to one.
             _ => return None,
@@ -475,6 +485,11 @@ impl Config {
                 .as_ref()
                 .map(|s| s.model.as_str())
                 .unwrap_or("soniox (not configured)"),
+            TranscriptionEngine::Paxa => self
+                .paxa
+                .as_ref()
+                .map(|p| p.model.as_str())
+                .unwrap_or("paxa-stt-lite-realtime-v1-preview"),
         }
     }
 
@@ -517,6 +532,9 @@ impl Config {
             }
             TranscriptionEngine::Soniox => {
                 self.soniox.get_or_insert_with(Default::default).model = model
+            }
+            TranscriptionEngine::Paxa => {
+                self.paxa.get_or_insert_with(Default::default).model = model
             }
         }
     }

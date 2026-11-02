@@ -87,7 +87,7 @@ impl ConfigSetError {
 
 /// Engines `config set engine` and the settings UIs offer, in
 /// [`TranscriptionEngine`] declaration order. Deliberately narrower than the
-/// enum: `soniox` is configured through its own `[soniox]` table and is not
+/// enum: `soniox` and `paxa` are configured through their own tables and are not
 /// offered by the TUI picker or `config set engine`, so it is excluded here.
 /// The `engine_names_track_the_enum` test pins this list against the enum so
 /// a new variant can't be silently forgotten.
@@ -133,7 +133,7 @@ pub fn engine_feature_compiled(name: &str) -> bool {
     };
     match engine {
         TranscriptionEngine::Whisper => true,
-        TranscriptionEngine::Soniox => true,
+        TranscriptionEngine::Soniox | TranscriptionEngine::Paxa => true,
         TranscriptionEngine::Parakeet => cfg!(feature = "parakeet"),
         TranscriptionEngine::Moonshine => cfg!(feature = "moonshine"),
         TranscriptionEngine::SenseVoice => cfg!(feature = "sensevoice"),
@@ -266,7 +266,7 @@ mod tests {
             .collect();
         assert_eq!(
             excluded,
-            [&"soniox"],
+            [&"soniox", &"paxa"],
             "new engine variants must be added to ENGINE_NAMES or documented as excluded"
         );
     }

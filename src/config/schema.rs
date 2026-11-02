@@ -853,6 +853,97 @@ pub const CONFIG_KEYS: &[KeySpec] = &[
         "Seconds to wait for an async transcription before giving up.",
     )
     .for_engine("soniox"),
+    // paxa
+    spec(
+        "paxa.api_key",
+        "paxa",
+        "api_key",
+        KeyType::String,
+        "Engine",
+        "API key",
+        "Paxa API key (pxa_...). Unset falls back to the PAXA_API_KEY environment variable.",
+    )
+    .for_engine("paxa"),
+    spec(
+        "paxa.endpoint",
+        "paxa",
+        "endpoint",
+        KeyType::String,
+        "Engine",
+        "Endpoint",
+        "API host, e.g. api.paxalabs.com. A full https:// or http:// URL also works.",
+    )
+    .for_engine("paxa"),
+    spec(
+        "paxa.model",
+        "paxa",
+        "model",
+        KeyType::String,
+        "Engine",
+        "Model",
+        "Realtime model used when streaming.",
+    )
+    .for_engine("paxa"),
+    spec(
+        "paxa.batch_model",
+        "paxa",
+        "batch_model",
+        KeyType::String,
+        "Engine",
+        "Batch model",
+        "Recording model used when streaming is off and for file transcription.",
+    )
+    .for_engine("paxa"),
+    spec(
+        "paxa.language",
+        "paxa",
+        "language",
+        KeyType::String,
+        "Engine",
+        "Language",
+        "Language hint such as th or en. Unset auto-detects.",
+    )
+    .for_engine("paxa"),
+    spec(
+        "paxa.streaming",
+        "paxa",
+        "streaming",
+        KeyType::Bool,
+        "Engine",
+        "Streaming",
+        "Stream over a WebSocket with live partials. Off sends one request when you release the key.",
+    )
+    .for_engine("paxa"),
+    spec(
+        "paxa.type_partials",
+        "paxa",
+        "type_partials",
+        KeyType::Bool,
+        "Engine",
+        "Type partials",
+        "Type partial results as they arrive. Off types only finalized turns.",
+    )
+    .for_engine("paxa"),
+    spec(
+        "paxa.style",
+        "paxa",
+        "style",
+        KeyType::String,
+        "Engine",
+        "Style",
+        "verbatim (default) or clean, which drops fillers. Streaming only.",
+    )
+    .for_engine("paxa"),
+    spec(
+        "paxa.convention",
+        "paxa",
+        "convention",
+        KeyType::String,
+        "Engine",
+        "Convention",
+        "spoken (default) or written, which keeps digits and units in Thai. Streaming only.",
+    )
+    .for_engine("paxa"),
     // -- Hotkey -------------------------------------------------------------
     spec(
         "hotkey.enabled",
@@ -2422,6 +2513,7 @@ pub fn resolve(key: &str, cfg: &Config) -> Option<Json> {
     let co = || cfg.cohere.clone().unwrap_or_default();
     let ov = || cfg.openvino.clone().unwrap_or_default();
     let so = || cfg.soniox.clone().unwrap_or_default();
+    let px = || cfg.paxa.clone().unwrap_or_default();
     // Without a table, post-processing is off; report the values a new
     // table would start with.
     let pp = || cfg.output.post_process.clone().unwrap_or_default();
@@ -2534,6 +2626,16 @@ pub fn resolve(key: &str, cfg: &Config) -> Option<Json> {
         },
         "soniox.async_api" => json!(so().async_api),
         "soniox.async_max_wait_secs" => json!(so().async_max_wait_secs),
+
+        "paxa.api_key" => opt_str(px().api_key.as_ref()),
+        "paxa.endpoint" => json!(px().endpoint),
+        "paxa.model" => json!(px().model),
+        "paxa.batch_model" => json!(px().batch_model),
+        "paxa.language" => opt_str(px().language.as_ref()),
+        "paxa.streaming" => json!(px().streaming),
+        "paxa.type_partials" => json!(px().type_partials),
+        "paxa.style" => opt_str(px().style.as_ref()),
+        "paxa.convention" => opt_str(px().convention.as_ref()),
 
         "hotkey.enabled" => json!(cfg.hotkey.enabled),
         "hotkey.key" => json!(cfg.hotkey.key),
@@ -3200,7 +3302,7 @@ mod tests {
         for s in CONFIG_KEYS {
             let Some(engine) = s.engine else { continue };
             // Whisper and the Soniox cloud client are always compiled in.
-            if engine == "whisper" || engine == "soniox" {
+            if engine == "whisper" || engine == "soniox" || engine == "paxa" {
                 assert!(
                     s.requires_feature.is_none(),
                     "{} should not be feature-gated; {} is always compiled in",
@@ -3388,6 +3490,7 @@ mod tests {
         // Lists, which need a hand edit.
         "output.driver_order",
         "soniox.terms",
+        "paxa.vocabulary",
     ];
 
     /// Tables of arbitrary keys, also a hand edit.
@@ -3423,6 +3526,7 @@ mod tests {
             "cohere",
             "openvino",
             "soniox",
+            "paxa",
         ]
         .iter()
         .map(|t| format!("[{t}]\nmodel = \"m\"\n"))

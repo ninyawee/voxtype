@@ -525,6 +525,24 @@ language_hints = ["en"]
 
 See [SONIOX.md](SONIOX.md) for the full reference (realtime vs async modes, performance tips with dotoold, privacy considerations).
 
+### Cloud Backend: Paxa Labs
+
+For Thai (with English and Mandarin), voxtype supports [Paxa Labs](https://paxalabs.com): paid cloud STT, no local model, Thai-English code-switching, and an optional written convention that keeps digits in Thai output.
+
+Paxa ships in every release binary. Set `PAXA_API_KEY` and:
+
+```toml
+engine = "paxa"
+
+[hotkey]
+mode = "toggle"   # required when streaming (default)
+
+[paxa]
+language = "th"
+```
+
+See [PAXA.md](PAXA.md) for the full reference.
+
 ### Creating a Custom Configuration
 
 ```bash

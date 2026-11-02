@@ -192,6 +192,16 @@ pub struct Cli {
     )]
     pub soniox_api_key: Option<String>,
 
+    // -- Paxa --
+    /// API key for Paxa Labs (or use PAXA_API_KEY env var)
+    #[arg(
+        long,
+        value_name = "KEY",
+        help_heading = "Paxa",
+        hide_short_help = true
+    )]
+    pub paxa_api_key: Option<String>,
+
     // -- Hotkey --
     /// Override hotkey (e.g., SCROLLLOCK, PAUSE, F13, MEDIA, WEV_234, EVTEST_226)
     #[arg(long, value_name = "KEY", help_heading = "Hotkey")]

@@ -16,6 +16,7 @@
 pub mod cli;
 #[cfg(feature = "parakeet")]
 pub mod parakeet_streaming;
+pub mod paxa;
 pub mod remote;
 pub mod sliding_window;
 pub mod soniox;
@@ -302,6 +303,9 @@ pub fn create_transcriber(config: &Config) -> Result<Box<dyn Transcriber>, Trans
             })?;
             Ok(Box::new(soniox::SonioxTranscriber::new(cfg.clone())?))
         }
+        TranscriptionEngine::Paxa => Ok(Box::new(paxa::PaxaTranscriber::new(
+            config.paxa.clone().unwrap_or_default(),
+        )?)),
         #[cfg(feature = "openvino-whisper")]
         TranscriptionEngine::OpenVino => {
             let default_config = crate::config::OpenVinoConfig::default();
