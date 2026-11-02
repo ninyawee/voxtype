@@ -375,6 +375,17 @@ pub struct Cli {
     )]
     pub wtype_shift_prefix: bool,
 
+    /// Streaming engines: type the transcript once, after recording stops
+    #[arg(
+        long,
+        help_heading = "Output",
+        hide_short_help = true,
+        long_help = "Streaming engines: keep streaming while you speak, but type the\n\
+        transcript once recording stops. Nothing is typed while the hotkey is\n\
+        held, so push-to-talk keeps working instead of being promoted to toggle."
+    )]
+    pub streaming_type_on_release: bool,
+
     /// Delay between typed characters in milliseconds (0 = fastest)
     #[arg(
         long,

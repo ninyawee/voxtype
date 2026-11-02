@@ -184,6 +184,14 @@ impl Config {
         }
     }
 
+    /// True when a streaming session will type at the cursor while the
+    /// hotkey is still down. That is the case that forces push-to-talk to
+    /// toggle; `[output] streaming_type_on_release` defers all typing to
+    /// after the release, so it keeps push-to-talk.
+    pub fn streaming_types_while_recording(&self) -> bool {
+        self.streaming_active() && !self.output.streaming_type_on_release
+    }
+
     /// Clone this config with engine-specific overrides for meeting (long-form)
     /// transcription. Currently:
     ///
@@ -569,6 +577,20 @@ mod tests {
         };
         let meeting_cfg = cfg.with_meeting_mode_overrides();
         assert!(meeting_cfg.soniox.as_ref().unwrap().async_api);
+    }
+
+    #[test]
+    fn type_on_release_keeps_push_to_talk_for_streaming_engines() {
+        let mut cfg = Config {
+            engine: TranscriptionEngine::Soniox,
+            soniox: Some(SonioxConfig::default()),
+            ..Config::default()
+        };
+        assert!(cfg.streaming_active());
+        assert!(cfg.streaming_types_while_recording());
+        cfg.output.streaming_type_on_release = true;
+        assert!(cfg.streaming_active());
+        assert!(!cfg.streaming_types_while_recording());
     }
 
     #[test]

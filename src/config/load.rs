@@ -190,6 +190,9 @@ pub fn load_config(path: Option<&Path>) -> Result<Config, VoxtypeError> {
     {
         config.output.wtype_shift_prefix = true;
     }
+    if let Ok(val) = std::env::var("VOXTYPE_STREAMING_TYPE_ON_RELEASE") {
+        config.output.streaming_type_on_release = parse_bool_env(&val);
+    }
     if let Ok(val) = std::env::var("VOXTYPE_AUTO_SUBMIT") {
         config.output.auto_submit = parse_bool_env(&val);
     }

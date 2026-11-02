@@ -1686,7 +1686,7 @@ language_hints_strict = false   # allow occasional third-language tokens
 
 Activation mode for the Soniox backend:
 
-- `true` — Live WebSocket session. Tokens stream back during recording and are typed at the cursor as they arrive (or only on finalization if `type_partials = false`). **Requires `[hotkey] mode = "toggle"`.** Push-to-talk is auto-promoted to toggle for the running session with a warning, because typing characters while the PTT key is still held clobbers libinput's held-key state on Hyprland/Sway/River.
+- `true` — Live WebSocket session. Tokens stream back during recording and are typed at the cursor as they arrive (or only on finalization if `type_partials = false`). **Requires `[hotkey] mode = "toggle"`.** Push-to-talk is auto-promoted to toggle for the running session with a warning, because typing characters while the PTT key is still held clobbers libinput's held-key state on Hyprland/Sway/River. To keep push-to-talk, set [`[output] streaming_type_on_release = true`](#streaming_type_on_release): the session still streams, but the transcript is typed once after release.
 - `false` — Batch mode. Audio buffered while the hotkey is held; on release one WebSocket session opens, the entire buffer is sent + finalized, and the resulting transcript is typed in one shot. Push-to-talk compatible. Loses live partials but keeps Soniox's accuracy.
 
 ### type_partials
@@ -2614,6 +2614,37 @@ voxtype --wtype-shift-prefix daemon
 - The problem happens in specific apps like Discord
 
 See [Troubleshooting](TROUBLESHOOTING.md#first-cjk-character-dropped-wtype) for more details.
+
+### streaming_type_on_release
+
+**Type:** Boolean
+**Default:** `false`
+**Required:** No
+**Environment Variable:** `VOXTYPE_STREAMING_TYPE_ON_RELEASE`
+
+For streaming engines (`[soniox] streaming`, `[parakeet] streaming`, `[whisper] streaming`, `[openvino] streaming`): keep the session streaming while you speak, but type nothing until recording stops, then type the whole transcript at once.
+
+Streaming normally types at the cursor while you dictate, which is why push-to-talk is auto-promoted to toggle: synthetic key events while the hotkey is physically held break libinput's held-key tracking on Hyprland, Sway and River. With this option nothing is typed while the key is held, so push-to-talk keeps working. Because the audio has already been streamed by the time you release the key, the wait after release is only the backend's tail latency, not a full batch request.
+
+The session drains after release instead of being disowned, so trailing finals that arrive after the stop are kept. Text processing (replacements, spoken punctuation) runs once over the whole transcript, and output honors `wait_for_modifier_release` like batch output.
+
+**Example:**
+```toml
+[hotkey]
+mode = "push_to_talk"
+
+[output]
+streaming_type_on_release = true
+```
+
+**CLI override:**
+```bash
+voxtype --streaming-type-on-release daemon
+```
+
+**When to use:**
+- You want push-to-talk with a streaming engine such as Soniox
+- You don't need to see text appear while speaking
 
 ### pre_output_command
 

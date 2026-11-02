@@ -1585,6 +1585,8 @@ impl Daemon {
         // simply unused for a file-output session.
         let output_override = read_output_mode_override();
         let file_output_path = self.resolve_file_output_path(&output_override, None);
+        let defer_typing =
+            file_output_path.is_none() && self.config.output.streaming_type_on_release;
 
         *audio_capture = Some(capture);
         *streaming_handle = Some(handle);
@@ -1597,6 +1599,7 @@ impl Daemon {
             finalized_text: String::new(),
             typed_chars: 0,
             file_output_path,
+            defer_typing,
         };
         self.update_state("streaming");
         self.play_feedback(SoundEvent::RecordingStart);
@@ -1681,6 +1684,9 @@ impl Daemon {
                 &*state,
                 State::Streaming {
                     file_output_path: Some(_),
+                    ..
+                } | State::Streaming {
+                    defer_typing: true,
                     ..
                 }
             );
@@ -1881,6 +1887,65 @@ impl Daemon {
                 FileDelivery::Lost(_) => self.play_feedback(SoundEvent::Error),
             }
 
+            *state = State::Idle;
+            self.update_state("idle");
+            return;
+        }
+
+        if matches!(
+            &state,
+            State::Streaming {
+                defer_typing: true,
+                ..
+            }
+        ) {
+            if let Some(s) = streaming_session.as_mut() {
+                s.finalize_pending_partial();
+            }
+            let raw = streaming_session
+                .as_ref()
+                .map(|s| s.finalized_text().to_string())
+                .unwrap_or_default();
+            let chain = streaming_chain.take();
+            *streaming_session = None;
+
+            // Accumulated raw, like file output: process the whole text once.
+            let final_text = self.text_processor.process(raw.trim());
+            if final_text.is_empty() {
+                tracing::info!("Streaming session ended with no speech");
+                self.play_feedback(SoundEvent::Cancelled);
+            } else {
+                let chain =
+                    chain.unwrap_or_else(|| output::create_output_chain(&self.config.output));
+                *state = State::Outputting {
+                    text: final_text.clone(),
+                };
+                let output_config = &self.config.output;
+                let options = output::OutputOptions {
+                    pre_output_command: output_config.pre_output_command.as_deref(),
+                    post_output_command: output_config.post_output_command.as_deref(),
+                    wait_for_modifier_release: output_config.wait_for_modifier_release,
+                    modifier_release_timeout: std::time::Duration::from_millis(
+                        output_config.modifier_release_timeout_ms,
+                    ),
+                };
+                tracing::info!("Typing streamed transcription on release");
+                if let Err(e) = output::output_with_fallback(&chain, &final_text, options).await {
+                    tracing::error!("Output failed: {}", e);
+                    self.play_feedback(SoundEvent::Error);
+                } else {
+                    self.play_feedback(SoundEvent::TranscriptionComplete);
+                    if self.config.output.notification.on_transcription {
+                        output::send_transcription_notification(
+                            &final_text,
+                            self.config.output.notification.show_engine_icon,
+                            self.config.engine,
+                            &self.config.output.notification.urgency,
+                        )
+                        .await;
+                    }
+                }
+            }
             *state = State::Idle;
             self.update_state("idle");
             return;
@@ -3783,7 +3848,7 @@ impl Daemon {
         // the daemon gets stuck in streaming. Force toggle activation when
         // streaming is enabled. The user's config file is left untouched; this
         // override only applies to the running daemon.
-        if self.config.streaming_active()
+        if self.config.streaming_types_while_recording()
             && self.config.hotkey.mode == crate::config::ActivationMode::PushToTalk
         {
             tracing::warn!(
@@ -4157,14 +4222,26 @@ impl Daemon {
                         (HotkeyEvent::Released, ActivationMode::PushToTalk) => {
                             tracing::debug!("Received HotkeyEvent::Released (push-to-talk), state.is_recording() = {}", state.is_recording());
                             if state.is_streaming() {
-                                tracing::debug!("Streaming push-to-talk released; closing audio capture and disowning session");
+                                // Sessions that type nothing live (file output,
+                                // streaming_type_on_release) must keep draining:
+                                // their text is only delivered in end_streaming.
+                                let accumulating = matches!(
+                                    &state,
+                                    State::Streaming { file_output_path: Some(_), .. }
+                                        | State::Streaming { defer_typing: true, .. }
+                                );
                                 self.stop_streaming_capture(&mut audio_capture).await;
-                                // Drop session/chain so the backend's
-                                // post-stop flush emission is dropped at
-                                // the event pump instead of typed.
-                                // Matches the SIGUSR2 stop path.
-                                streaming_session = None;
-                                streaming_chain = None;
+                                if accumulating {
+                                    tracing::debug!("Streaming push-to-talk released; closing audio capture and draining for output on release");
+                                } else {
+                                    tracing::debug!("Streaming push-to-talk released; closing audio capture and disowning session");
+                                    // Drop session/chain so the backend's
+                                    // post-stop flush emission is dropped at
+                                    // the event pump instead of typed.
+                                    // Matches the SIGUSR2 stop path.
+                                    streaming_session = None;
+                                    streaming_chain = None;
+                                }
                             } else if let State::Recording { model_override, .. } = &state {
                                 let model_override = model_override.clone();
 
@@ -4796,6 +4873,7 @@ impl Daemon {
                     let file_output = matches!(
                         &state,
                         State::Streaming { file_output_path: Some(_), .. }
+                            | State::Streaming { defer_typing: true, .. }
                     );
                     match event {
                         Some(StreamingEvent::Partial { text, .. }) => {
@@ -5290,6 +5368,7 @@ mod tests {
                 finalized_text: String::new(),
                 typed_chars: 0,
                 file_output_path: None,
+                defer_typing: false,
             },
             State::Transcribing { audio: Vec::new() },
         ];

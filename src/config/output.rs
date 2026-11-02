@@ -185,6 +185,15 @@ pub struct OutputConfig {
     /// indefinitely blocking transcription delivery.
     #[serde(default = "default_modifier_release_timeout_ms")]
     pub modifier_release_timeout_ms: u64,
+
+    /// Streaming engines only: keep the session streaming while you speak,
+    /// but type nothing until the recording stops, then type the whole
+    /// transcript at once. Because nothing is typed while the hotkey is
+    /// held, push-to-talk keeps working (no auto-promotion to toggle), and
+    /// the wait after release is just the backend's tail latency instead of
+    /// a full batch request.
+    #[serde(default)]
+    pub streaming_type_on_release: bool,
 }
 
 impl Default for OutputConfig {
@@ -218,6 +227,7 @@ impl Default for OutputConfig {
             restore_clipboard_delay_ms: default_restore_clipboard_delay(),
             wait_for_modifier_release: true,
             modifier_release_timeout_ms: default_modifier_release_timeout_ms(),
+            streaming_type_on_release: false,
         }
     }
 }

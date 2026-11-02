@@ -1594,6 +1594,15 @@ pub const CONFIG_KEYS: &[KeySpec] = &[
         "Hold typed output until Ctrl, Alt, Shift and Super are released, so text can't trigger keybindings.",
     ),
     spec(
+        "output.streaming_type_on_release",
+        "output",
+        "streaming_type_on_release",
+        KeyType::Bool,
+        "Output",
+        "Type streaming text on release",
+        "Streaming engines: stream while you speak but type the transcript once recording stops, so push-to-talk keeps working.",
+    ),
+    spec(
         "output.modifier_release_timeout_ms",
         "output",
         "modifier_release_timeout_ms",
@@ -2645,6 +2654,7 @@ pub fn resolve(key: &str, cfg: &Config) -> Option<Json> {
         "output.restore_clipboard" => json!(cfg.output.restore_clipboard),
         "output.restore_clipboard_delay_ms" => json!(cfg.output.restore_clipboard_delay_ms),
         "output.wait_for_modifier_release" => json!(cfg.output.wait_for_modifier_release),
+        "output.streaming_type_on_release" => json!(cfg.output.streaming_type_on_release),
         "output.modifier_release_timeout_ms" => json!(cfg.output.modifier_release_timeout_ms),
         "output.wtype_shift_prefix" => json!(cfg.output.wtype_shift_prefix),
         "output.dotool_xkb_layout" => opt_str(cfg.output.dotool_xkb_layout.as_ref()),

@@ -943,7 +943,9 @@ voxtype types text incrementally while you speak. Streaming requires
 disrupt libinput's tracking of held physical keys on Wayland compositors,
 so a held PTT key never fires its release event. The daemon auto-promotes
 push-to-talk to toggle at startup when streaming is enabled and logs a
-warning.
+warning. To keep push-to-talk, set `[output] streaming_type_on_release = true`:
+the session still streams while you hold the key, and the transcript is typed
+once you release it.
 
 See [PARAKEET.md](PARAKEET.md) for detailed setup instructions.
 

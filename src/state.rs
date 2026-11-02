@@ -83,6 +83,10 @@ pub enum State {
         /// daemon writes the accumulated text to this path once the
         /// backend reports `Ended`.
         file_output_path: Option<PathBuf>,
+        /// `[output] streaming_type_on_release`: accumulate like a file
+        /// session, then type the whole transcript at the cursor once the
+        /// backend reports `Ended`.
+        defer_typing: bool,
     },
 }
 
@@ -283,6 +287,7 @@ mod tests {
             finalized_text: String::new(),
             typed_chars: 0,
             file_output_path: None,
+            defer_typing: false,
         };
         assert!(state.is_recording());
         assert!(state.is_streaming());
@@ -300,6 +305,7 @@ mod tests {
             finalized_text: "hello".into(),
             typed_chars: 5,
             file_output_path: None,
+            defer_typing: false,
         };
         let display = format!("{}", state);
         assert!(display.starts_with("Streaming"));

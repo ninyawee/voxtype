@@ -239,6 +239,12 @@ type_delay_ms = 0
 # Workaround for apps (e.g., Discord) that drop the first CJK character
 # wtype_shift_prefix = false
 
+# Streaming engines (Soniox, Parakeet/Whisper streaming): keep streaming while
+# you speak, but type the transcript once recording stops. Nothing is typed
+# while the hotkey is held, so push-to-talk keeps working (otherwise streaming
+# auto-promotes push-to-talk to toggle).
+# streaming_type_on_release = false
+
 # Restore clipboard content after paste mode (default: false)
 # Saves clipboard before transcription, restores it after paste keystroke
 # Only applies to mode = "paste". Useful when you want to preserve your

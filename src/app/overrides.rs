@@ -242,6 +242,9 @@ pub(crate) fn apply_cli_overrides(config: &mut config::Config, cli: &Cli) -> Opt
     if cli.wtype_shift_prefix {
         config.output.wtype_shift_prefix = true;
     }
+    if cli.streaming_type_on_release {
+        config.output.streaming_type_on_release = true;
+    }
     if let Some(ref driver_str) = cli.driver {
         match parse_driver_order(driver_str) {
             Ok(drivers) => {
